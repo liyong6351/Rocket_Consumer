@@ -1,14 +1,10 @@
-package com.bwton.rocketmq;
+package com.bwton.rocketmq.consumer;
 
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.message.MessageExt;
-
-import java.util.List;
 
 /**
  * @ClassName com.bwton.rocketmq.OrderedConsumer
@@ -17,16 +13,8 @@ import java.util.List;
  * @Date 2018-12-12 11:13
  * @Version 0.0.1
  **/
-public class OrderedConsumer {
-    public static void executor(String[] args) throws MQClientException {
-
-        //声明并初始化一个consumer
-        //需要一个consumer group名字作为构造方法的参数，这里为concurrent_consumer
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ordered_consumer");
-
-        //同样也要设置NameServer地址
-        consumer.setNamesrvAddr("10.1.54.121:9876;10.1.54.122:9876");
-
+class OrderedConsumer {
+    static void executor(DefaultMQPushConsumer consumer) throws MQClientException {
         //这里设置的是一个consumer的消费策略
         //CONSUME_FROM_LAST_OFFSET 默认策略，从该队列最尾开始消费，即跳过历史消息
         //CONSUME_FROM_FIRST_OFFSET 从队列最开始开始消费，即历史消息（还储存在broker的）全部消费一遍
@@ -38,18 +26,14 @@ public class OrderedConsumer {
 
         //设置一个Listener，主要进行消息的逻辑处理
         //注意这里使用的是MessageListenerOrderly这个接口
-        consumer.registerMessageListener(new MessageListenerOrderly() {
+        consumer.registerMessageListener((MessageListenerOrderly) (msgs, context) -> {
 
-            @Override
-            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
+            System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
 
-                System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
-
-                //返回消费状态
-                //SUCCESS 消费成功
-                //SUSPEND_CURRENT_QUEUE_A_MOMENT 消费失败，暂停当前队列的消费
-                return ConsumeOrderlyStatus.SUCCESS;
-            }
+            //返回消费状态
+            //SUCCESS 消费成功
+            //SUSPEND_CURRENT_QUEUE_A_MOMENT 消费失败，暂停当前队列的消费
+            return ConsumeOrderlyStatus.SUCCESS;
         });
 
         //调用start()方法启动consumer
